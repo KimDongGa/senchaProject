@@ -1,6 +1,3 @@
-/* 
-	app.json 수정 시 sencha app build를 실행시켜야 한다.
-*/
 {
     "name": "Study",
     "namespace": "Study",
