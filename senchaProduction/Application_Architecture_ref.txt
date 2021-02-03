@@ -261,7 +261,43 @@
 	: 이러한 컨트롤러는 어플리케이션 실행 시 생성되어 어플리케이션이 실행되는 동안 유지되었다. 컨트롤어의 생명주기 동안 뷰에서 발생하는 이번트들이 컨트롤러를 통해 들어오고 나간다.
 	 또한 컨컨틀러가 관리하는 뷰는 다중 인스턴스가 될 수도 있었다.
 	 
-2-2. 
+2-2. 뷰 컨트롤러
+	: Ext JS 5가 현재 버전의 컨트롤러에 대한 하향 호환성를 유지하면서, 위에서 설명한 문제를 해결하기 위한 방안으로 Ext.app.ViewComtroller라는 새로운 컨트롤러를 소개하고 있다.
+		- "listener"와 "reference"설정을 사용하여 뷰와 연결을 간소화 함
+		- 연결된 뷰 컨트롤러에 대한 자동 관리를 위한 뷰의 생명주기 연동
+		- 관리하는 뷰와 1:1 관계에 기반한 뷰 컨트롤러를 통해 복잡성 제거
+		- 중첩된 뷰의 신뢰성 제고를 위한 캡슐화 지원
+		- 컴포넌트 선택 및 연결도니 뷰의 게층에 상관없는 이벤트 리스닝 유지
+		
+		1) 리스너 
+			: 리스너 설정은 새롭게 도입된 것으로 Ext JS 5에서 몇가지 새로운 능력을 부여한다.
+			 뷰 컨트롤러의 목적을 위해 다음 두가지 샘플을 살펴보자. 
+			 첫번째 뷰의 자식 아이템에서 리스너를 사용하느 기본적 사용이다.
+			 
+			 ex) 
+			 	 Ext.define('Study.view.foo.Foo',{
+			 	 	extend : 'Ext.panel.Panel',
+			 	 	xtype : 'foo',
+			 	 	controller : 'foo',
+			 	 	items : [{
+			 	 		xtype : 'textfield',
+			 	 		fieldLabel : 'Bar',
+			 	 		listeners: {
+			 	 			change : 'onBarChange'
+			 	 		}
+			 	 	}]
+			 	 });
+			 	 
+			 	 Ext.define('Study.view.foo.FooController',{
+			 	 	extend : 'Ext.app.ViewController',
+			 	 	alias : 'controller.foo',
+			 	 	onBarChange : function(){
+			 	 	
+			 	 	}
+			 	 });
+				# 위 예제 코드에서 리스너는 "scope"를 특정하지 않는 "onBarChange"라는 이름의 이벤트 핸들러를 보여주고 있다.
+				 내부적으로 이벤트 시스템은 Bar textfield의 기본 범위를 해당 뷰 컨트롤러 자체로 해석한다.
+				   
 	
 	
 	
