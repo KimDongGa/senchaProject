@@ -547,15 +547,203 @@
 	 	 setHidden 메서드로 이를 전달한다.   		
 
 	3) 바인딩과 우선순위
-		- 바인드 설정 프로퍼티는 언제나 설정에 의해 정적으로 지정된 값을 데이터 바인딩과 결과 값으로 덮어 쓰게 된다. 다시 말해 정적 
+		- 바인드 설정 프로퍼티는 언제나 설정에 의해 정적으로 지정된 값을 데이터 바인딩과 결과 값으로 덮어 쓰게 된다. 다시 말해 정적 설정 값보다 바인드 설정에 의한 값이 우선 순위를 갖는다는 의미이다.
+		 그러나 데이터가 패치되는 시간만큼 지연은 있을 수 있다.
+		 
+		 ex)
+		 	Ext.create('Ext.panel.Panel',{
+		 		title : 'Simple Form',
+		 		viewModel : {
+		 			type : 'test',
+		 		},
+		 		bind : {
+		 			title : 'Hello {name}'
+		 		}
+		 	});
+		 # "name"에 해당하는 바인딩 데이터가 도착하면, "Simple Form"이라는 title은 교체될 것이다.
+		 
 	4) 바인딩과 자식 컴포넌트
+		- 바인딩의 가장 유용한 부문 중의 하나는 뷰 모델이 있는 컴포넌트의 모든 자식에 대해 컨테이너 데이터 접근이 가능하다는 점이다.
+		 아래 예에서 form의 자식 아이템이 아이템이 속한 컨테이너 뷰 모델로부터 데이터를 얻는 것을 볼 수 있다.
+		 
+		 ex)
+		 	Ext.create('Ext.panel.Panel',{
+		 		title : 'Simple Form',
+		 		viewModel : {
+		 			type : 'test'
+		 		},
+		 		layout : 'form',
+		 		defaultType : 'textfield',
+		 		items : [{
+		 			fieldLabel : 'First Name',
+		 			bind : '{firstName}'
+		 		},{
+		 			fieldLabel : 'Last Name,
+		 			bind : '{lastName}'
+		 		}]
+		 	});
 	
 	5) Two Way 바인딩
+		- 바인딩 설정은 two-way 데이터 바인딩을 지원하여 뷰와 모델 간의 실시간 동기화를 가능하게 한다. 뷰에서 변경된 데이터는 모두 자동으로 모델에 반영된다. 
+		 이러한 자동적인 업데이트를 통해 같은 데이터를 공유하는 다른 컴폰넌트들이 동일한 데이터를 사용할 수 있도록 하는 것이다.
+		 
+		- 위 예제에서 "firstName"와 "lastName" 프로퍼티는 textfield에 바인딩 되어 있기 때문에 사용자 입력에 의해 수정된 데이터는 다시 뷰 모델로 되돌아가서 기록되는 것이다.
+		 어떻게 이러한 모든 연결들이 구성되는지 알아보기 위해 뷰 모델을 정의하고 예제 코드를 완성해보자
+		 
+		 ex)
+		 	Ext.define('TestViewModel',{
+				extend : 'Ext.app.ViewModel',
+				alias : 'viewmodel.test',
+				data : {
+					firstName : 'John',
+					lastName : 'Doe'
+				},
+				formulas : {
+					name : function(get){
+						var fn = get('firstName'), ln = get('lastName');
+						return (fn && ln) ? (fn + ' ' + ln) : (fn || ln || '');
+					}
+				}
+		 	});
 	
+			Ext.define('TestView',{
+				extend : 'Ext.panel.Panel',
+				layout : 'form',
+				viewModel : {
+					type : 'test'
+				},
+				bind : {
+					title : 'Hello {name}'
+				},
+				defaultType : 'textfield',
+				item : [{
+					fieldLabel : 'First Name',
+					bind : '{firstName}'
+				},{
+					fieldLabel : 'Last Name',
+					bind : '{lastName}'	
+				},{
+					type : 'button',
+					text : 'Submit',
+					bind : {
+						hidden : '{!name}'
+					}
+				}]
+			});
+			
+			Ext.define(function(){
+				Ext.create('TestView',{
+					renderTo : Ext.getBody(),
+					width : 400
+				})
+			});
+		# 위 패널이 화면에 그려질 때, textfield의 값이 패널 title에 반영되면서 동시에 Submit 버튼이 hidden으로 변경되는 것을 볼 수 있을 것이다.
+			
 	6) 바인딩과 컴포넌트 상태
+		- 가끔은 컴포넌트의 상태는, 예를 들어 checkbox 또는 그리드에서 선택된 레코드의 "checked", 다른 컴포넌트에 의해 주목 될 때가 있다. 컴포넌트가 식별을 위해 "reference"속성이 지정되면서 뷰 모델에 
+		 몇가지 핵심 프로퍼티를 전달한다.
+		 
+		- 이번 예제에서 checkbox의 checked 상태에 연동하여 "Admin Key" textfield를 비활성하는 설정을 지정했다.
+		 이 결과로 checkbox가 checked 상태가 될 때까지 textfield는 비활성화 상태를 유지할 것이다. 이러한 특징들은 아래와 같이 동적인 폼을 구현하기 위해 적절히 사용 될 수 있을 것이다.
+		 
+		 ex)
+		 	Ext.create('Ext.panel.Panel',{
+		 		title : 'Sign Up Form',
+		 		viewModel : {
+		 			type : 'test'
+		 		},
+		 		items : [{
+		 			xtype : 'checkbox',
+		 			boxLabel : 'Is Admin',
+		 			reference : 'isAdmin'
+		 		},{
+		 			xtype : 'textfield',
+		 			fieldLabel : 'Admin Key',
+		 			bind ; {
+		 				disabled : '{!isAdmin.checked}'
+		 			}
+		 		}]
+		 	});  
 	
 	7) 바인드 설명자(Bind Descriptors)
-	
+		- 지금까지 3가지 기본 형태의 바인드 설명자를 경험했다.
+			# {firstName} - 뷰 모델의 어떤 값에 대한 "direct bind", 이 값은 unmodified 상태로 전달되어 데이터 타입에 상관없이 어떤 값이든지 수신가능하다.
+			# Hello {name} - "bind template"은 항상 다양한 표현식에 의해 삽입된 문자열 값을 생산한다. 바인드 템플릿은 또한 Ext.Template과 같이 formatter를 사용할 수 있다. 에를 들면 'Hello{name:capitalize}' 이런 식이다.
+			# {!isAdmin.checked} - direct bind의 부정형으로 불린 설정 프로퍼티를 바인딩할 때 사용
+		
+		- 위의 기본 세가지 형태말고 몇가지 특별한 형태의 바인드 설명자를 사용할 수도 있다.
+		
+		7-1) Multi-Bind
+		: 만약 객체 또는 배열이 바인드 설명자로 주어진다면, 뷰 모델은 객체 또는 같은 형태의 배열을 생성할 것이지만, 다양한 프로퍼티들은 바인딩 결과 값으로 대체될 것이다. 예를 들어
+		
+		ex)
+			Ext.create('Ext.Component',{
+				bind : {
+					data : {
+						fame : '{firstName}',
+						lname : '{lastName}'
+					}
+				}
+			});
+		# 위와 같은 코드는 컴포넌트의 "data"설정을 두개의 프로퍼티를 뷰 모델로부터 얻는 객체로 설정한 것이다.
+		
+		7-2) Record Bind
+		: 예를 들어 42를 id로 갖는 "User"와 같은 형태의 특정한 레코드가 요구될 때, "reference"프로퍼티를 갖는 객체로 뱌인드 설명자를 지정할 수 있다. 예를 들어,
+		
+		ex)
+			Ext.create('',{
+				bind : {
+					data : {
+						reference : 'User',
+						id : 42
+					}
+				}
+			});
+		# 이와 같은 경우, 컴포넌트 tpl은 컴포넌트가 로딩될 때 한번에 user레코드를 수신한다. 이 방법을 사용하기 위해서는 Ext.data.Session을 사용해야 한다.
+		
+		7-3) Association Bind
+		: Record bind와 유사하게 바인드도 결합을 갖을 수 있다.
+		
+		ex)
+			Ext.create('',{
+				bind : {
+					data : {
+						reference : "User",
+						id : 42,
+						association : 'address'
+					}
+				}
+			});
+		# 이와 같은 경우, 컴포넌트 tpl은 로딩될 때 User의 "address" 레코드를 수신할 것이다. 마찬가지로 Ext.data.Session의 사용이 요구된다.
+		
+		7-4) 바인드 옵션 	  
+		: 바인드 설명자의 마지막 형식은 바인딩 옵션을 설명 해야 할 필요가 있을 때 사용된다. 다음 예는 어떻게 바인드를 통해 단 하나의 값을 수신하고 수신한 이후 연결을 끊는지를 보여준다.
+		
+		ex)
+			Ext.create('Ext.Component',{
+				bind : {
+					data : {
+						bindTo : '{name}',
+						single : true
+					}
+				}
+			})
+		# "bindTo" 프로퍼티는 바인드 설몀자 객체에서 두번째로 예약된 이름으로 (첫번째는 "reference"), 이 옵션이 설정되면 "bindTo"로 지정된 값이 실제 바인드 설명자로 대체되며, 다른 프로퍼티들은 
+		 설정 옵션에서 지정된 바에 따르게 된다.
+		 
+		# 현재 지원되는 다른 바인드 옵션은 "deep"이다. 이 옵션은 객체에 바인딩 할 때 객체의 어떤 프로퍼티가 변경될 때 단순히 래퍼런스로만 갖고 있는 것이 아니라 변경에 대한 알림까지 바인딩 하는 것이다.
+		 이 설정은 데이터로 객체를 수신하는 "data" 설정에서 지정한다.
+		 
+		ex)
+			Ext.create('',{
+				bind : {
+					data : {
+						bindTo : '{someObject}',
+						deep : true
+					}
+				}
+			});  
+		
 3-2. 뷰 모델 생성				 	
 	: 지금까지 컴포넌트가 어떻게 뷰 모델을 사용하는지 잘 살펴보았다. 이제 뷰 모델과 그것이 제안하는 장점이 무엇이 있는지 살펴볼 차례다
 	  앞서 살펴본 바와 같이 뷰 모델은 기본적인 데이터 객체의 관리자라고 할 수 있다. 뷰 모델은 객체의 컨텐츠라고 할 수 있으며 바이드 선언에 의해 소비된다.
@@ -764,5 +952,54 @@
 	: 일반적인 웹 사이트에서 사용자는 링크를 클릭해서 다른 페이지를 탐색하거나 폼을 입력하거나 하지만, 단일 페이지 어플리케이션의 경우에는 새로운 페이지를 로딩하지 않는다. 대신에 단일 페이지 내부에 포함된 컴포넌트 간의 상호작용에
 	 의해 사용자의 입력을 처리하게 된다. 그럴 경우, 만약 사용자의 브라우저 앞으로가기 또는 뒤로 가기 버튼의 사용은 어떻게 허용할 것인가 하는 문제가 남게 된다. 답은 바로 Ext JS 5의 새로운 라우터에 의한 단축 URL 해시 변경이 될 것이다.
 	 
-5-1. 라우팅은 	 		
+5-1. 라우팅은 무슨 목적으로 사용하게 되나?
+	: 라우팅은 브라우저 히스토리 스택을 통한 어플리케이션 상태를 추적하기 위해 사용된다. 또한 어플리케이션의 특정 파트에 대한 직접 링크를 허용하기 위한 deep linking을 사용하기 위해서도 사용된다.
+	
+5-2. 라우팅을 사용하지 말아야 할 경우는?
+	: 데이터 또는 세션을 저장할 목적으로 사용되어서는 안되낟. 데이터는 쿠키나 로컬 저장소와 같은 영구적 데이터 소스에 저장되어야 한다. 라우팅은 오직 어플리케이션 상태를 추적하는 도구로만 사용되는 것이 바람직하다.
+	
+5-3. 해시는 무엇인가?
+	: 브라우저는 많은 파트로 구성된 URI를 사용해서 인터넷을 탐색한다. URL에 대한 예를 살펴보자
+	 http://www.example.com/apps/users#user/1234
+	  상대적으로 친숙해 보일테지만, #user=1234는 아마 인식하지 못했을 것이다. URI의 이 부분은 "해시(hash)"또는 단편적 식별자(fragment identifier)라고 불리우는 것이다. 해시는 어플리케이션에게 현재 페이지의 리로딩 없이 브라우저의
+	히스토리 스택을 추가하고 이를 통해 부라우저의 앞으로/뒤로 버튼을 이용한 URI의 탐색을 지원토록 한다. 
+	
+5-4. 어플리케이션에서 라우팅 구현하기
+	
+5-5. 해시 업데이트
+
+5-6. 토큰 기본값(Default Token)
+
+5-7. 파라미터를 갖는 해시
+
+5-8. 해시 파라미터 포매팅(Hash Parameter Formatting)
+
+5-9. 라우터 핸들링
+
+5-10. 일치 항목이 없는 라우팅의 처리
+
+5-11. 단일 해시 값을 이용한 다중 라우팅 사용하기	 
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+		
 	
