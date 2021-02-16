@@ -93,7 +93,15 @@
 	# 주의) 위에서 설명한 어플리케이션 빌드에 대해 모르겠다면, 센차의 Getting Started Guide를 참고. 
 
 1-5. ARIA 테마	  	 
-	: 
+	: "ext-theme-aria"는 시각적 장애를 갖는 사용자를 위한 고대비 테마로서 사용자 설정에 따라 look&feel 변경이 가능하다. Ext JS ARIA 테마를 어플리케이션에 적용하기 위해서는 app.json의 테마 블럭을 다음과 같이 수정하면 된다.
+	
+	ex)
+		"theme" : "ext-theme-neptune",
+	# 위는 아래와 같이 바뀌어야 한다.
+	
+	ex)
+		"theme" : "ext-theme-aria",
+	# app.json 파일이 수정되었으므로 어플리케이션을 다시 빌드하고나면 어플리케이션은 'ext-theme-aria'테마가 적용되어 아래와 같을 것이다.
 	 
 	 
 	 
