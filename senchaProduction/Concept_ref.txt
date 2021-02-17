@@ -207,15 +207,129 @@
 		
 		- ClassName : 클래스 이름
 		- Members : 클래스 멤버의 집합 객체, 키-값의 쌍
-		- OnClassCreated : 선택적인 콜백 함수, 의존 관계 클래스가 준비완료되고 클래스 자신의 생성이 완료되면 호출된다. 클래스 생성의 비동기적 생태 때문에 이 콜백 함수는 다양한 경우에 유용하게 사용도리 수 있다. 섹션 4에서  
+		- OnClassCreated : 선택적인 콜백 함수, 의존 관계 클래스가 준비완료되고 클래스 자신의 생성이 완료되면 호출된다. 클래스 생성의 비동기적 생태 때문에 이 콜백 함수는 다양한 경우에 유용하게 사용도리 수 있다. 섹션 4에서
+		
+		ex) 
+			Ext.define('My.sample.Person',{
+				name : 'Unknown',
+				constructor : function(name){
+					if(name){
+						this.name = name;
+					}
+				},
+				eat : function(foodType){
+					alert(this.name + "is eating : " + foodType);
+				}
+			});  
+			
+			var aaron = Ext.create('My.sample.Person', 'Aaron');
+			aaron.eat("Salad");
+			
+		# 주의) My.sample.Person 클래스의 새 인스턴스를 만들 때 Ext.create()를 사용했다. 이때 new 키워드를 사용해서 newMy.Sample.Person()과 같이 인스턴스를 만들 수도 있지만 Ext JS가 지원하는 동적 로딩(dynamic loading)의 장점을 취하기 위해서는 
+		 항상 Ext.create() 메서드 사용을 권장한다. 동적 로딩에 관한 상세한 사항은 Getting Started Guide를 참조하자.
 		
 	3) 설정(Configuration)
-	4) 상수 멤버(Statics)
+		: Ext JS 4에서 클래스 생성 전에 Ext.Class 전처리기에 의해 처리되는 config 프로퍼티에 대해 소개했엇다. 여기에 포함된 기능은 다음과 같다.
+		
+			- Config 프로퍼티는 다른 클래스 멤버로부터 완전히 캡슐화 되어 분리
+			- 모든 config 프로퍼티에 대한 Getter와 Setter메서드는 메서드가 정의되어 있지 않더라도 클래스 프로토타이핑을 통해 자동으로 생성
+			- apply 메서드가 모든 config 프로퍼티에 대해 생성됨. 자동 생성되는 setter메서드는 값을 세팅하기 전에 내부적으로 apply 메서드를 호출한다. 만약 값 설정 전 이 로직에 대한 커스터마이징이 필요하다면 config 프로퍼티에 대한 apply메서드를 오버라이딩 할 수 있다.
+			 또한, apply 메서드의 리턴 값이 없으면 setter는 값을 설정하지 않는다.
+	 	
+	 	: config를 사용하는 Ext 클래스는 Ext JS 5에 접어들어 initConfig()를 수동으로 호출해야 하는 불편을 없앴다. 그러나, 만약 사용자의 클래스가 Exdt.Base를 상속하여 확장한 클래스라면 initConfig() 메서드의 수동 호출은 반드시 필요하다는 점을 유념하자. 
+	 	 설정에 대한 예제는 다음과 같다.
+	 	 
+	 	ex)
+	 		Ext.define('My.own.Window',{
+	 			isWindow : true,
+	 			config : {
+	 				title : 'Title Here',
+	 				bottomBar : {
+	 					height : 50,
+	 					resizable : false
+	 				}
+	 			},
+	 			
+	 			applyTitle : function(title){
+	 				if(!Ext.isString(title) || title.length === 0){
+	 					alert('Error : Title must be a valid non-empty string');
+	 				}
+	 				else{
+	 					return title;
+	 				}
+	 			},
+	 			
+	 			applyBottomBar : function(bottmBar){
+	 				if(bottomBar){
+	 					if(!this.bottomBar){
+	 						return Ext.create('My.own.WindowBottomBar',bottomBar);
+	 					}
+	 					else{
+	 						this.bottomBar.setConfig(bottomBar);
+	 					}
+	 					
+	 				}
+	 			}
+	 			
+	 		});  
+	 	 
+	 	 	Ext.define('My.own.WindowBottomBar',{
+	 	 		config : {
+	 	 			heigth : undefined,
+	 	 			resizable : true
+	 	 		}
+	 	 	});
+	 	 	
+ 	 	# 그리고 어떻게 사용되었는지에 대한 예는 다음과 같다.
+ 	 	
+ 	 	ex)
+ 	 		var myWindow = Ext.create('My.own.Window',{
+ 	 			title : 'Hello World',
+ 	 			bottomBar : {
+ 	 				heigth : 60
+ 	 			}
+ 	 		});
+ 	 		
+ 	 		alert(myWindow.getTitle());					// alerts "Hello World"
+ 	 		myWindow.settitle('Something New');
+ 	 		alert(myWindow.getTitle());					// alerts "Something New"
+ 	 		myWindow.setTitle(null);					// alerts "Error : Title must be a valid non-empty string"
+ 	 		myWindow.setBottomBar({height : 100});		
+ 	 		alert(myWindow.getBottomBar().getHeight());	// alerts 100
 	
+	4) 상수 멤버(Statics)
+		: 상수 멤버는 statics config를 이용해 설정할 수 있다.
+		
+		ex)
+			Ext.define('Computer',{
+				statics: {
+					instancesCount:0,
+					factory : function(brand){
+						return new this({brand:brand});
+					}
+				},
+				config : {
+					brand : null
+				}
+			});
+			
+			var dellComputer = Computer.factory('Dell');
+			var appleComputer = Computer.factory('Mac');
+			alert(appleComputer.getBrand());
+			
 2-4. 에러 핸들링 & 디버깅
-
+	: Ext JS는 디버깅과 에러 처리를 위한 몇가지 유용한 기능을 제공한다.
+		
+		- Ext.getDisplayName()을 사용하여 어떤 메서드라도 display name을 얻을 수 있다. 오류가 발생하는 클래스와 메서드를 알려주기 때문에 유용하다. 
+		 throw new Error('['+ Ext.getDisplayName(arguments.callee) + '] Some message here');
+		- Ext.define()에서 정의된 아무 클래스의 어떤 메서드에서 오류가 발생되면, WebKit 기반의 브라우저(크롬 또는 사파리)를 사용하고 있다면 call stack에서 메서드와 클래스 이름을 확인 할 수 있다. 크롬의 경우 아래와 같은 형식이다.
 
 3. 컴포넌트
+	: 모든 Ext JS 어플리케이션 UI는 컴포넌트라고 불리우는 하나 이상의 위젯으로 구성되어 있다. 모든 컴포넌트는 Ext.Component의 서브 클래스로서 인스턴스 생성, 랜더링, 사이즈 및 위치, 소멸까지 자동화된 생명주기 관리를 받게 된다.
+	 Ext JS는 독창적이고 광범위한 범위의 컴포넌트를 제공하며, 제공되는 모든 컴포넌트는 커스터마이징된 컴포넌트로 손쉽게 확장이 가능하다.
+	 
+3-1.	 
+
 
 4. 데이터 패키지
 
