@@ -328,7 +328,187 @@
 	: 모든 Ext JS 어플리케이션 UI는 컴포넌트라고 불리우는 하나 이상의 위젯으로 구성되어 있다. 모든 컴포넌트는 Ext.Component의 서브 클래스로서 인스턴스 생성, 랜더링, 사이즈 및 위치, 소멸까지 자동화된 생명주기 관리를 받게 된다.
 	 Ext JS는 독창적이고 광범위한 범위의 컴포넌트를 제공하며, 제공되는 모든 컴포넌트는 커스터마이징된 컴포넌트로 손쉽게 확장이 가능하다.
 	 
-3-1.	 
+3-1. 컴포넌트 계층도(The Component Hierarchy)	 
+	: 컨테이너는 다른 컴포넌트를 담을 수 있는 특별한 타입의 컴포넌트이다. 일반적인 어플리케이션은 트리 형태의 구조를 갖는 많은 컴포넌트의 연결 구성을 통해 완성되는데, 이를 바로 컴포넌트 계층도라고 한다. 컨테이너는 자식 컴포넌트의 생명주기(lifecycle)-생성,
+	 랜더링, 사이즈 및 위치 결정, 그리고 소멸 관리를 담당할 책임이 있다. 일반적인 어플리케이션의 컴포넌트 계층도는 맨 위에 뷰포트(Viewport)로 시작해서 다른 컨테이너나 컴포넌트들이 하위로 붙는 형식을 취한다.
+	 
+	: 컨테이너에 추가된 자식 컴포넌트는 컨테이너의 items 설정 프로퍼티를 사용해서 추가되는데 아래 예제는 Ext.create()를 사용해서 2개의 패널 인스턴스를 만들고 뷰포트의 자식 컴포넌트로 생서하는 예를 제시한다.
+	
+	ex)
+		var childPanel1 = Ext.create('Ext.panel.panel',{
+			title : 'Child Panel 1',
+			html : 'A Panel'
+		});
+		
+		var childPanel2 = Ext.create('Ext.panel.Panel',{
+			title : 'Child Panel 2',
+			html : 'Another Panel'
+		});
+		
+		Ext.create('Ext.container.Viewport',{
+			items : [childPanel1, childPanel2]
+		});
+		
+		# 컨테이너는 자식 컴포넌트의 위치와 크기를 관리하기 위해 Layout Manager를 사용한다. 레이아웃과 컨테이너에 대한 자세한 사항은 Layouts and Containers Guide를 참고
+		
+3-2. XTypes과 게으른 인스턴스화(Lazy Instantiation)
+	: 모든 컴포넌트는 xtype이라고 하는 상징적 이름(Symbolic Name)을 갖는다. 예를 들어 Ext.panel.Panel의 xtype은 'panel'이다. 위 예제에서는 어떻게 미리 인스턴스로 생성된 컨테이너에 컴포넌트를 추가하는지를 보여주는데, 대형 어플리케이션에서는 
+	 모든 컴포넌트의 인스턴스가 즉시 생성될 필요는 없기 때문에 위의 경우는 일반적인 것은 아니라고 할 수 있다.
+	  일부 어떤 인스턴스는 어플리케이션 운용에 따라 한번도 인스턴스로 생성될 필요가 없는 경우도 가정할 수 있다. 예를 들어, Tab Panel을 사용하는 어플리케이션은 사용자가 각 탭을 클릭했을 때만 각 탭의 컨텐츠를 랜더링 되도록 하면 될 것이다.
+	  이러한 이유로 xtype을 통해 컨테이너의 자식 컴포넌트들의 설정이 먼저 완료되고 난 후, 컨테이너가 필요하다고 결정한느 시점까지 인스턴스는 만들지 않는 것이다. 이렇게 설정은 먼저 해놓고 필요한 시점까지 인스턴스 생성을 미뤄두는 것을 게으른 인스턴스화라고 한다.
+	  애래의 예제 코드는 게으른 인스턴스화 및 컨테이너의 자식 컴포넌트인 탭 패널 랜더링을 보여준다. 각각의 탭은 이벤트 리스너를 갖고 있어서 탭이 랜더링 되면 메시지를 띄어준다
+	   
+	ex)
+		Ext.create('Ext.tab.Panel',{
+			renderTo : Ext.getBody(),
+			height : 100,
+			width  : 200,
+			itmes : [
+				{
+					xtype : 'panel',
+					title : 'Tab One',
+					html : 'The first tab',
+					listeners : {
+						render : function(){
+							Ext.MessageBox.alert('Rendered One', 'Tab One was rendered');
+						}
+					}
+				},
+				{
+					title : 'Tab Two',
+					html : 'The second tab',
+					listeners : {
+						render : function(){
+							Ext.MessageBox.alert('Rendered One', 'Tab Two was rendered');
+						}
+					}
+				}
+			]
+		});
+	
+	# 이 코드를 실행하면 첫번째 탭이 랜더링 되면서 즉시 메시지 창이 뜬다. 이것은 기본저긍로 설정된 Active 탭 때무네 그런것으로 컨테이너 탭 패널은 탭을 즉시 랜더링 한다.
+	
+	# 두번째 탭에 대한 메시지 창은 탭을 클릭하기 전까지는 나타나지 않는다. 필요한 시점까지 탭이 활성화 되지 않아 render 이번트를 발생시키지 않으므로 탭은 랜더링 되지 않기 때문이다.
+	
+3-3. 보여주기와 감추기
+	: 모든 컴포넌트는 내장된 show, hide 메서드를 갖고 있다. hide 메서드를 처리하기 위한 디폴트 CSS메서드는 "display:none"인데, hideMode 설정 프로퍼티에서 변경할 수 있다. 
+	 "(.javascript) var panel = Ext.create('Ext.panel.Panel', { renderTo : Ext.getBody, title  :'Test', html : 'Test Panel', hideMode : 'visibility' // show, hide 처리를 위해 CSS visibility 프로퍼티를 사용})"
+	 panel.hide(); // 이 컴포넌트를 감춘다 panel.show(); // 이 컴포넌트를 보여준다.
+	 
+	 ex)
+	 	--플로팅 컴포넌트(Floating Components)
+	 		: 플로팅 컴포넌트는 문서의 ㅂ까에 위치한 것으로 CSS absolute 위치를 사용하며 컨테이너의 레이아웃에 영향을 받지 않는다. 일부 Window와 같은 컴포넌트들은 기본적으로 Floating 속성인데, 이러한 플로팅 속성은 floating 설정을 통해 지정할 수 있다.
+	 	
+	 	...{.javascript}
+	 	var panel = Ext.create('Ext.panel.Panel',{
+	 		width : 200,
+	 		height : 200,
+	 		floating : true,
+	 		title : 'test',
+	 		html : 'Test Panel'
+	 	});
+	 	
+	# 위 코드에서는 패널 인스턴스를 생성하지만, 랜더링 하지는 않았다. 보통의 컴포넌트는 renderTo 설정이 지정되거나 또는 컨테이너의 자식 컴포넌트로 추가되기 때문인데, 플로팅 컴포넌트는 두가지 경우가 다 아니더라도 상관없다. 플로팅 컴포넌트는 첫번째 show 메서드가
+	 호출될 때 자동으로 document body에 랜더링 되기 때문이다.
+	
+	ex)
+		panel.show(); // 플로팅 컴포넌트를 랜더링하고 보여준다.
+		
+	# 플로팅 컴포넌트에 관해 주의할 몇가지 다른 설정 프로퍼티와 메서드를 모자
+	
+		- draggable : 플로팅 컴포넌트를 드래그 가능하게 설정한다.
+		- shadow : 플로팅 컴포넌트의 그림자가 보이게 설정한다.
+		- alignTo() : 특정 엘리먼트에 대해 플로팅 컴포넌트를 정렬한다.
+		- center() : 플로팅 컴포넌트를 컨테이너의 중심에 위치시킨다.
+
+3-4. 커스텀 컴포넌트 만들기
+	
+	1) 새로운 구성 또는 상속을 통한 확장
+		: 새로운 UI 클래스를 만들 때 Component의 자체적인 클래스로 만들 것인지 아니며 Component를 상속(extend)하여 만들 것인지 먼저 결정해야 한다.
+		  권장되는 방법은 기능적으로 가장 근접한 클래스를 base 클래스로 상속해서 기능을 확장하는 것이다. 이 경우 Ext JS가 제공하는 필요할 때 자동으로 랜도링 해준다던가, 컴포넌트의 사이즈와 위치를 자동으로 결정해주는 등 적당한 레이아웃 매니저에 의한 관리
+		 및 컨테이너로부터 제거될 때 자동으로 소멸 시켜주는 등의 자동화된 생명주기 관리를 받을 수 있는 장점이 있다.
+		  반면에, 새로운 클래스의 컴포넌트이면서 Ext JS컴포넌트 계층에 해당되지 않고, 외부로부터 랜더링 및 관리를 통제받아야 한다면 새로운 클래스를 작성하는 편이 나을 것이다.
+	
+	2) 서브 클래싱(Subclassing)
+		: 클래스 시스템은 Ext JS 프레임워크의 어떤 부분이라도 손쉽게 확장할 수 있도록 한다. Ext.Base는 모든 Ext JS 클래스의 기본단위로서 이 클래스의 정적 멤버(static member)들과 프로토타입은 다른 모든 클래스들이 상속한다.
+		  가장 최하위 수준인 Ext.Base를 이용해서 사용자만의 기능을 추가할 수도 있겠지만 거의 대부분의 경우에 상속 체인에서 좀 더 높은 수준의 클래스로부터 확장하고 싶을 것이다. 다음 예는 Ext.Component클래스의 서브 클래스를 생성하는 것이다.
+		  
+		ex)
+			Ext.define('My.custom.Component',{
+				extend : 'Ext.Component',
+				newMethod : function(){
+					//...
+				}
+			});
+		
+		# 위에서는 My.custom.Component라는 이름의 새 클래스를 만들고 Ext.Component의 모든 기능(메서드, 프로퍼티, 기타 등등)을 상속받았으며, 새로운 메서드 혹은 프로퍼티를 추가하고 있다.	
+	
+	3) 템플릿 메서드
+		: Ext JS 서브 클래스에서만 나타나는 특징으로 위임(delegate)을 위해 템플릿 메서드 패턴(Template method pattern)을 사용하고 있다. 이것은 상속 체인에 속하는 각 클래스가 컴포넌트 생애주기에 대해 로직의 일부을 "기부"함을 의미한다.
+		 각 클래스는 자신의 로직을 다른 상속 체인에 속하는 다른 클래스에 기부하도록 허용하는 자신만의 특정한 속성을 갖도록 구현된다.
+		  render 함수를 예로 들어 render는 Component의 생애주기 중 랜더링 단게에서 초기화 되도록 만들어져있다. render는 절대 오버라이드 할 수 없으며, 파생 클래스에서 특정적인 처리가 필요할 때 onRender 메서드를 서브클래스에 추가해서
+		 처리하도록 한다. 모든 onRender 메서드는 extra logic을 "기부"하기 전에 반드시 수퍼클래스의 onRender메서드를 호출해야 한다.
+		  아래의 그림은 onRender 템플릿 메서드를 설명한 다이어그램이다.
+		  render메서드는 컨테이너의 레이아웃 매니저에 의해 호출되는데, 이 메서드는 오버라이드 될 수 없고, ext base클래스에 의해 구현되다. render메서드의 호출은 다시 현재 서브 클래스의 this.onRender를 호출하게 된다. 이 호출은 수퍼 클래스
+		 버전의 onRender 메서드 호출로 이어졌다. 최종적으로는 각 상속 체인 상의 각 클래스들은 제 각각의 기능을 기부한 후 render 메서드의 제어권을 반환하게 된다.
+		  아래의 그림은 onRender 템플릿 메서드를 설명한 다이어그램이다.
+		  render 메서드는 컨테이너의 레이아웃 매니저에 의해 호출되는데, 이 메서드는 오버라이드 될 수 없고 Ext base 클래스에 의해 구현된다. rneder 메서드의 호출은 다시 현재 서브 클래스의 this.onRender를 호출하게 된다. 
+		  이 호출은 수퍼 클래스 버전의 onRender 메서드 호출로 이어진다. 최종적으로 각 상속 체인 상의 각 클래스들은 제 각각의 기능을 기부한 후 render 메서드의 제어권을 반환하게 된다.  
+		
+		ex)
+			Ext.define('My.custom.Component',{
+				extend : 'Ext.Component',
+				onRender : function(){
+					this.callParent(arguments);
+				}
+			});   
+		
+		# 대부분의 템플릿 메서드들이 연관된 이벤트를 갖는다는 점은 중요한데, 예를 들어 Component가 랜더링 되면 render 이벤트가 발생된다. 서브 클래스를 사용할 때 이벤트가 아니라 생애주기에서 중요한 단계에서 클래스 로직을 수행하기 위해 템플릿 메서드를 사용해야
+		 한다는 점을 주의하자. 이벤트는 프로그래밍을 통해 연기 될 수도 있으며 핸들러에 의해 중지될 수도 있기 때문이다.
+		  아래는 Component의 서브 클래스에서 구현된 템플릿 메서드들이다.
+		  
+		  - initComponent : 생성자에 의해 호출된다. 주로 데이터 초기화, 설정 셋업, 이벤트 핸들러를 추가할 때 사용된다.
+		  - beforeShow : Component가 보여질 때 호출되는 메서드
+		  - onShow : Show 동작에 추가적인 무엇인가를 하고 싶다면 사용, 수퍼 클래스의 onShow를호출한 다음에 컴포넌트가 visible 상태가 될 것이다.
+		  - afterShow : Component가 보여지고 난 후 호출되는 메서드
+		  - onShowComplete : afterShow 메서드가 완료되고 나면 호출
+		  - onHide : hide 동작에 추가적인 처리 허용, 수퍼 클래스의 onHide를 먼저 호출해야 컴포넌트가 숨겨진다.
+		  - afterHide : 컴포넌트가 감춰지고 난 후 호출
+		  - onRender : 랜더링 단계에 추가 작업을 위한 메서드
+		  - afterRender : 렌더링 완료되고 난 후 추가적인 작업을 지원, 이 단계에서 컴포넌트 엘리먼트가 설정에 따라 스타일이 적용되고 설정된 CSS 클래스 이름의 추가와 visibility 설정, enable 상태의 제어가 가능해진다.
+		  - onEnable : enable 동작에 대해 추가적인 동작을 가능하게 한다. 수퍼 클래스의 onEnable 호출이 먼저 필요하다.
+		  - onDisable : disable 동작에 대해 추가적인 동작을 가능하게 한다. 수퍼 클래스의 onDisable 메서드를 먼저 호출해야 한다.
+		  - onAdded : 컴포넌트가 컨테이너에 추가될 때 문어가 처리르 가능하게 해주는 메서드, 이 단계에서 컴포넌트는 부모 컨테이너의 자식 아이템 컬랙션의 하나로 존재하게 된다. 수퍼 클래스의 onAdded 메서드 호출이 완료된 후에 ownerCt 래퍼런스가 
+		   가능하게 되며, ref가 설정되어 있었다면 refOwner가 설정될 것이다. 
+		  - onRemoved : 컴포넌트가 부모 컨테이너로부터 제거될 때의 동작을 지정한다. 이 단계에서는 부모 컨테이너의 잣기 아이템 컬렉션에서는 제거되지만 소멸 되지는 않는 단계로서, (만약 부모 컨테이너의 설정이 autoDestroy가 true일 경우 혹은 
+		   두번째 파라미터로 remove call이 전달되었을 경우에는 소멸) 수퍼 클래스의 onRemoved 호출 후에 ownerCt와 refOwner는 존재하지 않게 된다. 
+		  - onResized : 리사이즈 동작 시 호출되는 메서드
+		  - onPosition : 위치에 관한 동작 시 호출되는 메서드
+		  - onDestroy : 소멸 동작 시 호출되는 메서드로서 수퍼 클래스의 onDestroy 호출이 끝나면 컴포넌트가 소멸된다.
+		  - beforeDestroy : 컴포넌트 소멸전에 호출
+		  - afterSetPosition : 컴포넌트 위치가 설정 완료되면 호출
+		  - afterComponentLayout : 컴포넌트의 레이아웃이 조절완료 되면 호출
+		  - beforeComponentLayout : 컴포넌트 레이아웃이 조절되기 전에 호출
+		
+	4) 어떤 클래스가 (상속되어) 확장되나?
+		: 확장을 위한 베이스 클래스를 선정하는 것이 주로 효율성을 따지게 되는데 베이스 클래스가 반드시 제공해야 하는 기능이 무엇인가에 관한 것이다. Ext.panel.Panel은 베이스 클래스로서 잘 선택되는 경향이 있는데 이는 패널 클래스가 갖는 다음 특징 때문이다.
+		
+			- Border
+			- Header
+			- Header tools
+			- Footer
+			- Footer buttons
+			- Top toolbar
+			- Bottom toolbar
+			- 자식 컴포넌트를 포함 및 관리			
+		
+		4-1) 컴포넌트
+		
+		4-2) 컨테이너
+		
+		4-3) 패널
+		
+	5)
 
 
 4. 데이터 패키지
