@@ -503,15 +503,111 @@
 			- 자식 컴포넌트를 포함 및 관리			
 		
 		4-1) 컴포넌트
-		
+			: 요구되는 UI 컴포넌트가 다른 컴포넌트르 포함할 필요가 없어서 HTML 형태의 포을 캡슐화하는 것으로 충분하다면 Ext.Component를 확장하는 것이 적합할 것이다. 예제의 코드는 HTML 이미지 엘리먼트를 랩핑해서 이미지의 src 속성을 설정하거나 얻을 수 있돌고 한
+			 Ext.Component 확장 클래스의 예다. 이 클래스는 이미지가 로드되면 load 이벤트를 발생시킨다.
+			 
+			 ex) 
+			 	Ext.define('Ext.ux.Image',{
+					extend : 'Ext.Component',
+					alias : 'widget.managedimage',
+					autoEl : {
+						tag : 'img',
+						src : Ext.BLANK_IMAGE_URL,
+						cos : 'my-managed-image'
+					},
+					onRender : function(){
+						this.autoEL = Ext.apply({},this.initalConfig, this.autoEL);
+						this.callParent(arguments);
+						this.el.con('load', this.onLoad.this);
+					},
+					onLoad : function(){
+						this.fireEvent('load',this)
+					},
+					setSrc : function(){
+						if(this.rendered){
+							this.el.dom.src = src;
+						} else {
+							this.src = src;
+						}
+					},
+					
+					getSrc : function(){
+						return this.el.dom.src || this.src;
+					}			 	
+			 	});
+			 
+			 ex)
+			 	var image = Ext.create('Ext.ux.Image');
+			 	Ext.create('Ext.panel.Panel',{
+			 		title : 'Image Panel',
+			 		heigth : 200,
+			 		renderTo : Ext.getBody(),
+			 		itmes : {image}
+			 	});	
+			 	image.on('load', function(){
+			 		console.log('image loaded:', image.getSrc() )
+			 	});
+			 	
+			 	image.setSrc('http://~');
+			 	
+			 # 주의 : 위 에제는 예제로서만 참고하자. 실제 어플리케이션 개발 시에는 Ext.Img클래스를 사용해서 이미지를 관리하면 된다.
+			 	
 		4-2) 컨테이너
+			: 만들어야 하는 UI컨테이너가 다른 컴포넌트를 포함해야 하지만 앞서 설명한 Panel 클래스의 기능까지는 필요 없다면 Ext.container.Container 클래스를 확장하는 것이 적합할 것이다. 컨테이너 수준에서 Ext.layout.container.Container 클래스가
+			 자식 컴포넌트를 랜더링 하고 관리한다는 중요한 사시을 기억하라.
+			  컨테이너는 다음과 같은 추가적인 템플릿 메서드를 갖는다.
+			  
+				- onBeforeAdd : 이 메서드는 새로운 자식 컴포넌트를 추가하기 전에 호출된다. 새로운 컴포넌트를 전달하면 컴포넌트를 수정하거나 컨테이너를 어떤 방법으로 준비시키기 위해 사용되는데 add동작이 중단되면 false를 리턴한다.
+				- onAdd : 새 자식 컴포넌트의 추가가 완료되면 호출된다. 새로 등록된 컴포넌트르 전달한다. 이 메서드는 자식 아이템의 상태에 따라 내부 구조를 업데이트 할 필요가 있을 때 사용한다.
+				- onRemove : 새롭게 추가된 컴포넌트가 컨테이너에서 제거 완료되면 호출된다. onAdd와 마찬가지로 자식 아이템의 상태에 따라 내부 구조를 업데이트할 때 주로 사용한다. 
+				- beforeLayout : 컨테이너의 자식 컴포넌트가 레이아웃이 실행되기 전에 (혹은 랜더링 되면) 호출된다.
+				- afterLayer : 자식 컴포넌트의 레이아웃이 완료되면 실행된다.
 		
 		4-3) 패널
-		
-	5)
-
+			: 새로 만들고자 하는 UI 컴포넌트가 반드시 header, footer 혹은 toolbar가 있어야 한다면 Ext.panel.Panel 클래스가 확장을 위한 베이스 클래스로 적합하다.
+			  중요). Panel은 컨테이너다. 따라서 랜더링 및 자식 컴포넌트 관리를 위해서는 Layout을 사용해야 한다는 점을 기억하자
+			  Ext.panel.Panel 클래스를 확장한 클래스는 통상 어플리케이션 특정적인 형태를 갖는 것이 일반적이며, 다른 UI 컴포넌트(통상 컨테이너 또는 폼 필드)를 설정된 Layout에 모으고, tbar 및 bbar와 유사한 형태로 기능을 제공할 때가 많다.
+			  패널은 다음과 같은 추가적인 템플릿 메서드를 제공한다.
+			  
+			  	- afterCollapse : 패널이 접혔을 때 호출된다.
+			  	- afterExpand 패널이 펼쳐졌을 때 호출된다.
+			  	- onDockedAdd : 도킹 아이템이 패널에 추갇외고 나서 호출된다.
+			  	- onDockerRemove : 도킹 아이템이 패널에서 제거되면 호출된다.
 
 4. 데이터 패키지
+	: 데이터 패키지는 어플리케이션에서 로딩하고 저장할 모든 데이터를 처리한다. 여러 개의 클래스로 되어 있지만, 그 중에 가장 중요한 세가지를 소개하자면 다음과 같다.
+	
+		- Ext.data.Model
+		- Store
+		- Ext.data.proxy.Proxy
+	
+	# 위 3개 클래스는 거의 모든 어플리케이션에서 사용되며, 아래 그림과 같이 위성 모양의 관계를 갖는 다수의 다른 클래스에 의해 지원을 받고 있다.	 
+	
+4-1. 모델
+	: 데이터 패키지의 가장 중심은 바로 Ext.data.Model이다. 모델은 어플리케이션의 엔티티를 대표하는데, 예를 들면 전자상거래 앱은 Users, Products, Orders와 같은 모델들을 갖게 된다. 가장 단순하게 말하자면 모델은 필드 세트와 이와 연관된 비즈니스 로직이라고 
+	 정의할 수 있다. 
+	  모델을 구성하느 일부 기본적인 부분들을 살펴보자.
+		
+		[Ext.data.Model]
+		- Fields : String, Integer, Float, Boolean
+		- Proxies : AJAX, REST, Localstorage, JSON-P
+		- Validations : Presence, Format, Length, Custom
+		- Associations : ManyToOne, OneToOne, ManyToMany
+	
+	1). 모델 만들기
+		: 나에게 필요한 모델을 만드는 가장 좋은 방법은 베이스 클래스에서 시작하는 것이다. 베이스 클래스를 확장하여 모델을 생성하는 방법은 한번에 원하는 목적의 모델을 손쉽게 구성하면서 스키마를 설정할 수 있다는 장점이 있다. 스키마(Schema)는 어플리케이션의 모든 
+		 모델을 관리를 담당한다. 다음 예를 보자.
+		 
+		 ex)
+		 	Ext.define('Study.model.Base',{
+		 		extend : 
+		 	});
+
+4-2. 스토어
+
+4-3. 결합(Associations)
+
+4-4. 검증(Validations)
 
 5. 드래그 & 드롭
 
